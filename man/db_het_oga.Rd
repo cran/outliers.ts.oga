@@ -15,7 +15,7 @@
   \item{Y_clean}{The cleaned database, a \code{list} of \code{p} cleaned time series.}
   \item{result}{A message indicating when the procedure has worked correctly or the problem encountered if the procedure stops.}
 }
-\references{Galeano, P., Peña, D. and Tsay, R. S. (2024). Efficient outlier detection in heterogeneous time series databases. Working paper, Universidad Carlos III de Madrid.}
+\references{Galeano, P., Peña, D. and Tsay, R. S. (2025). Efficient outlier detection for large time series databases. Working paper, Universidad Carlos III de Madrid.}
 \author{Pedro Galeano.}
 \note{The computational cost depends on the size of the database and the level of contamination of the series. Note that the function may take several minutes if the database contains hundred of series with thousands of observations.}
 \seealso{\code{\link{single_oga}}; \code{\link{db_hom_oga}}.}

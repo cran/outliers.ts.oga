@@ -1,6 +1,6 @@
-23ed046946aeb997237ffbf7db8110c7 *DESCRIPTION
+6269995c276e3a07e9cacdcaa241e070 *DESCRIPTION
 74212aff1560a70778945320c5b1ccc5 *NAMESPACE
-3803d270d96ea179f45e36391b92eb1e *R/outliers.ts.oga.R
-94dfc3191e5a5078b45d0b106e54194f *man/db_het_oga.Rd
-66ca9236fc784cfde4ad5581b39d4eb1 *man/db_hom_oga.Rd
-bbb76885405ec55e21dbc685dbbaff59 *man/single_oga.Rd
+bc456e1d6853d466cdd349fffe6d0527 *R/outliers.ts.oga.R
+624ffe70d87a207bb3ebc934ec953959 *man/db_het_oga.Rd
+352dad09e88dff4835835396c6868c18 *man/db_hom_oga.Rd
+bfeed10b50263ff7f8b003acd33a1b1a *man/single_oga.Rd

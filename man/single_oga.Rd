@@ -13,7 +13,7 @@
   \item{aos}{A \code{matrix} with the Additive Outliers (AOs) detected including location, size and t-test. If \code{NULL}, no AOs have been found in the series.}
   \item{lss}{A \code{matrix} with the Level Shifts (LSs) detected including location, size and t-test. If \code{NULL}, no LSs have been found in the series.}
 }
-\references{Galeano, P., Peña, D. and Tsay, R. S. (2024). Efficient outlier detection in heterogeneous time series databases. Working paper, Universidad Carlos III de Madrid.}
+\references{Galeano, P., Peña, D. and Tsay, R. S. (2025). Efficient outlier detection for large time series databases. Working paper, Universidad Carlos III de Madrid.}
 \author{Pedro Galeano.}
 \seealso{\code{\link{db_hom_oga}}; \code{\link{db_het_oga}}.}
 \examples{
