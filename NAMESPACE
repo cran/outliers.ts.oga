@@ -3,7 +3,8 @@ export(single_oga)
 export(db_hom_oga)
 export(db_het_oga)
 
-import("parallel")
+import("future")
+import("future.apply")
 import("parallelly")
 
 importFrom("stats", "arima", "coef", "coefficients", "embed",

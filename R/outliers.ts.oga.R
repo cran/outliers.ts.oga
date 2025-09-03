@@ -165,7 +165,8 @@
   
   XX <- embed(yt,max_lag+1)
   XX <- data.frame(XX[,c(1,p_lags+1)])
-  invisible(capture.output(m1 <- robust::lmRob(XX$X1~.,data=XX,control=robust::lmRob.control(seed=1))))
+  m1 <- suppressWarnings(robust::lmRob(XX$X1~.,data=XX,control=robust::lmRob.control(seed=1,trace=0)))
+  #invisible(capture.output(m1 <- robust::lmRob(XX$X1~.,data=XX,control=robust::lmRob.control(seed=1))))
   rob_et <- c(rep(0,max_lag),as.vector(m1$residuals))
   rob_pis <- rep(0,max_lag)
   rob_pis[p_lags] <- as.vector(m1$coefficients[-1])
@@ -450,25 +451,25 @@
   
   s <- frequency(yt_clean)
   if (s>1) {
-    spec_arima <- SLBDD::sarimaSpec(yt_clean,maxorder=c(3,1,0),period=s,method="CSS")
+    suppressMessages(suppressWarnings(spec_arima <- SLBDD::sarimaSpec(yt_clean,maxorder=c(3,1,0),period=s,method="CSS")))
     order <- spec_arima$order[1:3]
     sorder <- spec_arima$order[4:6]
     include.mean <- spec_arima$include.mean
-    suppressWarnings(arima_fit <- forecast::Arima(yt_clean,order=order,seasonal=list(order=sorder,period=s),
-                                                  include.mean=include.mean,method="CSS"))
+    suppressMessages(suppressWarnings(arima_fit <- forecast::Arima(yt_clean,order=order,seasonal=list(order=sorder,period=s),
+                                                  include.mean=include.mean,method="CSS")))
   } else {
-    spec_arima <- SLBDD::arimaSpec(yt_clean,maxorder=c(3,1,0),method="CSS")
+    suppressMessages(suppressWarnings(spec_arima <- SLBDD::arimaSpec(yt_clean,maxorder=c(3,1,0),method="CSS")))
     order <- spec_arima$order
     sorder <- NULL
     include.mean <- spec_arima$include.mean
-    suppressWarnings(arima_fit <- forecast::Arima(yt_clean,order=order,include.mean=include.mean,method="CSS"))
+    suppressMessages(suppressWarnings(arima_fit <- forecast::Arima(yt_clean,order=order,include.mean=include.mean,method="CSS")))
   }
   
   ##########################################################################################################
   # Obtain residuals
   
-  con_et <- residuals(forecast::Arima(yt_clean,model=arima_fit))
-  if (anyNA(con_et)==T){con_et <- forecast::na.interp(con_et)}
+  con_et <- suppressMessages(suppressWarnings(residuals(forecast::Arima(yt_clean,model=arima_fit))))
+  if (anyNA(con_et)==T){con_et <- suppressMessages(suppressWarnings(forecast::na.interp(con_et)))}
   
   ##########################################################################################################
   # Obtain AR representation
@@ -665,19 +666,10 @@
     ##########################################################################################################
     # Set up parallel stuff and run procedure
     
-    num_workers <- parallelly::availableCores()
-    cl <- parallel::makeCluster(num_workers)
-    parallel::clusterExport(cl,"single_oga",environment())
-    parallel::clusterExport(cl,"rob_ar",environment())
-    parallel::clusterExport(cl,"det_oga",environment())
-    parallel::clusterExport(cl,"oga",environment())
-    parallel::clusterExport(cl,"runs_vec",environment())
-    parallel::clusterExport(cl,"sarima_fit",environment())
-    parallel::clusterExport(cl,"joint_fit",environment())
-    parallel::clusterExport(cl,"config_oga",environment())
-    out_bd_oga <- parallel::parCapply(cl=cl,Y,single_oga,s=s)
-    parallel::stopCluster(cl=cl)
-    
+    plan(multisession,workers=availableCores())
+    out_bd_oga <- future_apply(Y,2,single_oga,s=s)
+    plan(sequential)
+
     ##########################################################################################################
     # Save results
     
@@ -749,19 +741,10 @@
     ##########################################################################################################
     # Set up parallel stuff and run procedure
     
-    num_workers <- parallelly::availableCores()
-    cl <- parallel::makeCluster(num_workers)
-    parallel::clusterExport(cl,"single_oga",environment())
-    parallel::clusterExport(cl,"rob_ar",environment())
-    parallel::clusterExport(cl,"det_oga",environment())
-    parallel::clusterExport(cl,"oga",environment())
-    parallel::clusterExport(cl,"runs_vec",environment())
-    parallel::clusterExport(cl,"sarima_fit",environment())
-    parallel::clusterExport(cl,"joint_fit",environment())
-    parallel::clusterExport(cl,"config_oga",environment())
-    out_bd_oga <- parallel::parLapply(cl=cl,Y,single_oga)
-    parallel::stopCluster(cl=cl)
-    
+    plan(multisession,workers=availableCores())
+    out_bd_oga <- future_lapply(Y,FUN=single_oga)
+    plan(sequential)
+
     ##########################################################################################################
     # Save results
     
