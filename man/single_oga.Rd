@@ -18,9 +18,9 @@
 \seealso{\code{\link{db_hom_oga}}; \code{\link{db_het_oga}}.}
 \examples{
 
-## Load FREDMDApril19 dataset from the SLBDD package
-data("FREDMDApril19",package="SLBDD")
-Y <- FREDMDApril19
+## Load FRED_MD dataset
+data("FRED_MD")
+Y <- FRED_MD
 
 ## Define time series yt and frequency s
 yt <- Y[,1]

@@ -395,22 +395,31 @@
     }
     
     ##########################################################################################################
+    # Add a restriction for a wrong configuration
+    
+    max_configs <- unlist(lapply(configs,max))
+    elim_configs <- which(max_configs>(2*nT))
+    configs <- configs[-elim_configs]
+    
+    ##########################################################################################################
     # Compute HDAIC for all configurations
     
     n_configs <- length(configs)
-    HDAIC <- vector(length=n_configs)
-    for (i in 1:n_configs){
-      M_config <- as.data.frame(M[,configs[[i]]])
-      rank_M_config <- qr(M_config)$rank
-      if (rank_M_config<ncol(M_config)){
-        HDAIC[i] <- NA
-      } else {
-        fit_M_config <- lm(et~.-1,data=M_config)
-        HDAIC[i] <- nT * log(mean(fit_M_config$residuals^2)) + length(configs[[i]]) * 2 * log(nC)
+    if (n_configs>0){
+      HDAIC <- vector(length=n_configs)
+      for (i in 1:n_configs){
+        M_config <- as.data.frame(M[,configs[[i]]])
+        rank_M_config <- qr(M_config)$rank
+        if (rank_M_config<ncol(M_config)){
+          HDAIC[i] <- NA
+        } else {
+          fit_M_config <- lm(et~.-1,data=M_config)
+          HDAIC[i] <- nT * log(mean(fit_M_config$residuals^2)) + length(configs[[i]]) * 2 * log(nC)
+        }
       }
+      if (all(is.na(HDAIC))==F){J_Trim <- configs[[which.min(HDAIC)]]}
     }
-    if (all(is.na(HDAIC))==F){J_Trim <- configs[[which.min(HDAIC)]]}
-    
+
   } 
   
   ##########################################################################################################
@@ -451,14 +460,14 @@
   
   s <- frequency(yt_clean)
   if (s>1) {
-    suppressMessages(suppressWarnings(spec_arima <- SLBDD::sarimaSpec(yt_clean,maxorder=c(3,1,0),period=s,method="CSS")))
+    suppressMessages(suppressWarnings(spec_arima <- sarima_spec(yt_clean,maxorder=c(3,1,0),period=s,method="CSS")))
     order <- spec_arima$order[1:3]
     sorder <- spec_arima$order[4:6]
     include.mean <- spec_arima$include.mean
     suppressMessages(suppressWarnings(arima_fit <- forecast::Arima(yt_clean,order=order,seasonal=list(order=sorder,period=s),
                                                   include.mean=include.mean,method="CSS")))
   } else {
-    suppressMessages(suppressWarnings(spec_arima <- SLBDD::arimaSpec(yt_clean,maxorder=c(3,1,0),method="CSS")))
+    suppressMessages(suppressWarnings(spec_arima <- arima_spec(yt_clean,maxorder=c(3,1,0),method="CSS")))
     order <- spec_arima$order
     sorder <- NULL
     include.mean <- spec_arima$include.mean
@@ -772,4 +781,204 @@
   
   return(list("n_AOs"=n_AOs,"n_LSs"=n_LSs,"AOs"=AOs,"LSs"=LSs,"Y_clean"=Y_clean,"result"=result))
   
+}
+
+"arima_spec" <- function(zt,maxorder=c(5,1,4),criterion="bic",output=FALSE,method="CSS-ML",pv=0.01){
+  d <- 0
+  p <- maxorder[1]+maxorder[2]
+  if (is.matrix(zt)){
+    zt <- zt[, 1]
+    message("This command works on scalar time series only. First column is used.", "\n")
+  }
+  pv <- stats::Box.test(rank(zt),lag=10,type="Ljung")$p.value
+  if (pv<0.1){p1 <- ar(zt,order.max=p)$order} else {p1 <- p}
+  utcri <- -2.86
+  if (pv<0.03){utcri <- -3.12}
+  if (pv<0.011){utcri <- -3.43}
+  tst1 <- adf_test(zt,lags=p1)
+  if (tst1>=utcri){d <- 1}
+  if (d==1){
+    dzt <- diff(zt)
+    if (p1 > 1){
+      tst2 <- adf_test(dzt,lags=(p1-1))
+      if (tst2 >= utcri) {d <- 2}
+    }    
+  }
+  dzt <- zt
+  if (d==1){dzt <- diff(zt)}
+  if (d==2){dzt <- diff(diff(zt))}
+  tstmean <- t.test(dzt)
+  include.mean <- TRUE
+  if (tstmean$p.value > 0.05){include.mean = FALSE}
+  step1 <- ar(dzt,include.mean=include.mean,order.max=sum(maxorder))
+  pmax <- step1$order
+  qmax <- pure_MA(dzt,maxq=12)
+  choice <- c(0,d,0)
+  if (pmax==0){choice <- c(0,d,0)}
+  nT <- length(dzt)
+  mincrit <- 99*nT
+  mu <- mean(dzt)
+  s1 <- sqrt(var(dzt))
+  loglik <- sum(dnorm(dzt,mean=mu,sd=s1,log=TRUE))
+  if (criterion=="aic"){crit <- -loglik*2+2}else{crit <- -2*loglik+2*log(nT)}
+  mincrit <- min(mincrit, crit)
+  if (pmax>0){
+    pmax <- min(pmax,maxorder[1])
+    for (i in 0:pmax) {
+      qmax1 <- min(maxorder[3],qmax)
+      for (j in 0:qmax1){
+        if ((i+j)>0){
+          m1 <- try(suppressWarnings(arima(dzt,order=c(i,0,j),include.mean=include.mean,method=method)),silent=TRUE)
+          if (as.character(class(m1))=="try-error" & grepl("system is computationally singular",as.character(class(m1)))){
+            warning("To avoid optimization problems the data has been scaled to zero mean and unit variance.",call. =FALSE)
+            dzt <- scale(dzt)
+            m1 <- suppressWarnings(arima(dzt,order=c(i,0,j),include.mean=include.mean,method=method))
+          }
+          if (as.character(class(m1))=="try-error" & grepl("non-stationary AR part from CSS",as.character(class(m1)))){
+            next
+          }
+          else {
+            s1 <- sqrt(var(m1$residuals))
+            loglik <- sum(dnorm(m1$residuals,mean=0,sd=s1,log=T))
+            if (criterion == "aic"){crit <- (-loglik+2+i+j)*2} else {crit<- -loglik*2+(2+i+j)*log(nT)}
+            if (mincrit > crit) {
+              choice <- c(i,d,j)
+              mincrit <- crit
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  if (output){
+    cat("include.mean: ", include.mean, "\n")
+    cat("Selected order (p,d,q): ", choice, "\n")
+    cat("minimum criterion: ", mincrit, "\n")
+  }
+  
+  return(list("order"=choice,"crit"=mincrit,"include.mean"=include.mean))
+  
+}
+
+"sarima_spec" <- function(zt,maxorder=c(2,1,3),maxsea=c(1,1,1),criterion="bic", 
+          period=12,output=FALSE,method="CSS-ML",include.mean=TRUE){
+  
+  if (is.matrix(zt)){zt <- zt[, 1]}
+  nn <- s_adf_test(zt,period=period,lags=max(floor(period/2)-1,maxorder[1]))
+  D <- d <- 0
+  if (nn[1] >= -3.43){D <- 1}
+  if (nn[2] >= -3.43){d <- 1}
+  if ((d == 1) && (D == 0)){
+    tmp <- diff(zt)
+    tst <- adf_test(tmp,lags=(period+maxorder[1]-1))
+    if (tst >= -3.43){d <- 2}
+  }
+  choice <- c(0,d,0,0,D,0)
+  dz <- zt
+  if (d > 0){for (i in 1:d){dz <- diff(dz)}}
+  if (D == 1){dz <- diff(dz,period)} 
+  mm <- t.test(dz)
+  if (mm$p.value < 0.05){include.mean <- TRUE} else {include.mean <- FALSE}
+  nT <- length(dz)
+  mincrit <- 99*nT
+  mu <- mean(dz)
+  s1 <- sqrt(var(dz))
+  loglik <- sum(dnorm(dz,mean=mu,sd=s1,log=TRUE))
+  if (criterion=="aic"){crit <- (-loglik+2)*2} else {crit <- -2*loglik+2*log(nT)}
+  mincrit <- min(mincrit,crit)
+  if (maxsea[1] > 2){maxsea[1] <- 2}
+  if (maxsea[3] > 1){maxsea[3] <- 1}
+  for (ii in 0:maxsea[1]){
+    for (jj in 0:maxsea[3]){
+      for (i in 0:maxorder[1]){
+        for (j in 0:maxorder[3]){
+          if ((i+j+ii+jj) > 0) {
+            m1 <- try(suppressWarnings(arima(dz,order=c(i,0,j),seasonal=list(order=c(ii,0,jj),period=period),include.mean=include.mean,method=method)),silent=TRUE)
+            if (as.character(class(m1))=="try-error" & grepl("system is computationally singular",as.character(class(m1)))){
+              warning("To avoid optimization problems the data has been scaled to zero mean and unit variance.")
+              dzt <- scale(dz)
+              m1 <- suppressWarnings(arima(dz,order=c(i,0,j),seasonal=list(order=c(ii,0,jj),period=period),include.mean=include.mean,method=method))
+            }
+            if (as.character(class(m1))=="try-error" & grepl("non-stationary AR part from CSS",as.character(class(m1)))){
+              next
+            } else {
+              if (criterion == "aic"){crit <- (-m1$loglik+2+i+j+ii+jj)*2} else {crit <- -m1$loglik * 2 + (2 + i + j + ii + jj) * log(nT)}
+              if (mincrit > crit){
+                choice <- c(i, d, j, ii, D, jj)
+                mincrit <- crit
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  if (output){
+    cat("Selected order (p,d,q,P,D,Q): ", choice, "\n")
+    cat("minimum criterion: ", mincrit, "\n")
+  }
+  
+  return(list("order"=choice,"crit"=mincrit,"include.mean"=include.mean))
+  
+}
+
+"adf_test" <- function (x,lags=2){
+  if (lags < 1) {lags <- 0}
+  x <- as.numeric(x)
+  dx <- c(0,diff(x))
+  nT <- length(x)
+  effnob <- nT-lags-1
+  ist <- lags+2
+  y <- dx[ist:nT]
+  X <- x[(ist-1):(nT-1)]
+  if (lags>0){for (i in 1:lags){X <- cbind(X,dx[(ist-i):(nT-i)])}}
+  m1 <- lm(y~.,data=data.frame(X))
+  tst <- summary(m1)$coefficients[2,3]
+  tst
+}
+
+"s_adf_test" <- function (x,period=12,lags=1){
+  if (lags < 1){lags <- 0}
+  if (period < 2){period <- 2}
+  x <- as.numeric(x)
+  dx <- c(0,diff(x))
+  sdx <- c(rep(0,period),diff(dx,period))
+  nT <- length(x)
+  effnob <- nT-lags-period
+  ist <- lags+1+period+1
+  y <- sdx[ist:nT]
+  X <- dx[(ist-period):(nT-period)]
+  X <- cbind(X,x[(ist-1):(nT-1)])
+  if (lags > 0){for (i in 1:lags){X <- cbind(X,sdx[(ist-i):(nT-i)])}}
+  m1 <- lm(y~.,data=data.frame(X))
+  sm1 <- summary(m1)
+  tsts <- sm1$coefficients[2, 3]
+  tstr <- sm1$coefficients[3, 3]
+  tst <- c(tsts, tstr)
+  tst
+}
+
+"pure_MA" <- function(zt,maxq=12){
+  if (is.matrix(zt)){zt <- zt[,1]}
+  rzt <- rank(zt)
+  mm <- acf(rzt,lag.max=maxq+1,plot=FALSE)
+  rhohat <- mm$acf[-1]
+  nn <- length(rhohat)
+  iend <- min(maxq,nn)
+  nT <- length(zt)
+  q <- iend
+  Qm <- 0
+  for (i in 1:nn) {Qm <- Qm+rhohat[i]^2/(nT-i)}
+  Qm <- Qm*nT*(nT+2)
+  pv <- 1-pchisq(Qm,df=nn)
+  if (pv > 0.1){q <- 0}
+  i <- 1
+  if (q>=iend){
+    Qm <- Qm-nT*(nT+2)*rhohat[i]^2/(nT-i)
+    pv <- 1-pchisq(Qm,df=(nn-i))
+    if (pv>0.1){q <- i} else {i <- i+1}
+  }
+  q
 }

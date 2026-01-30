@@ -21,14 +21,14 @@
 \seealso{\code{\link{single_oga}}; \code{\link{db_hom_oga}}.}
 \examples{
 \donttest{
-# Load FREDMDApril19 dataset from the SLBDD package
-data("FREDMDApril19",package="SLBDD")
+# Load FRED_MD dataset
+data("FRED_MD")
 
 # Define frequency s, the same for all series
 s <- 12
 
 # Define a list with the first 10 time series with frequency s
-X <- FREDMDApril19[,1:10]
+X <- FRED_MD[,1:10]
 Y <- vector(mode='list',length=ncol(X))
 for (k in 1:ncol(X)){Y[[k]] <- ts(X[,k],frequency=s)}
 

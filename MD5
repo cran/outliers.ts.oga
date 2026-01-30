@@ -1,6 +1,10 @@
-6a806482a54efe71fa1087472383eedb *DESCRIPTION
-1a68b8717d161dca9992a63af79db6df *NAMESPACE
-895ab9704a0706e57eb5e79e6614cea2 *R/outliers.ts.oga.R
-624ffe70d87a207bb3ebc934ec953959 *man/db_het_oga.Rd
-352dad09e88dff4835835396c6868c18 *man/db_hom_oga.Rd
-bfeed10b50263ff7f8b003acd33a1b1a *man/single_oga.Rd
+e15e684352fcdc22f9fad35c50592615 *DESCRIPTION
+62b869d9c0cc74b7b422ab1cab12e01d *NAMESPACE
+c7a3a5adc124d7e2f9e10e8503e886d5 *R/FRED_MD.R
+f1c3084b9f017cc2cb90916429a8db77 *R/outliers.ts.oga.R
+24476a4f7cef892a2315c025948640ae *data/FRED_MD.rda
+1f5a7cd4857a3bfaa3e945f991736d2f *data/datalist
+e2687e2cfdb1cbea6e18934a94e60862 *man/FRED_MD.Rd
+e363b4a0bdfb6ac1ae5f42f26d09a7de *man/db_het_oga.Rd
+033e01b946cf0e035f56a784ac9ee22c *man/db_hom_oga.Rd
+e8c5941215a14c906a8acc3eb90b7408 *man/single_oga.Rd

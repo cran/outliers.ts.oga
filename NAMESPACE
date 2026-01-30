@@ -7,13 +7,12 @@ import("future")
 import("future.apply")
 import("parallelly")
 
-importFrom("stats", "arima", "coef", "coefficients", "embed",
-           "frequency", "is.mts", "is.ts", "lm", "qchisq", "residuals",
-           "toeplitz", "ts", "vcov")
+importFrom("stats", "acf", "ar", "arima", "coef", "coefficients", "dnorm", "embed",
+           "frequency", "is.mts", "is.ts", "lm", "pchisq", "qchisq", "residuals",
+           "toeplitz", "ts", "t.test", "var", "vcov")
 importFrom("utils", "capture.output")
 
 importFrom("caret","findLinearCombos")
 importFrom("forecast","Arima","na.interp")
 importFrom("gsarima","arrep")
 importFrom("robust","lmRob")
-importFrom("SLBDD","sarimaSpec","arimaSpec")

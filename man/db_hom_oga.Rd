@@ -22,14 +22,14 @@
 \seealso{\code{\link{single_oga}}; \code{\link{db_het_oga}}.}
 \examples{
 \donttest{
-# Load FREDMDApril19 dataset from the SLBDD package
-data("FREDMDApril19",package="SLBDD")
+# Load FRED_MD dataset
+data("FRED_MD")
 
 # Define frequency s
 s <- 12
 
 # Apply the procedure to the first 10 time series in FREDMDApril19
-Y <- FREDMDApril19[,1:10]
+Y <- FRED_MD[,1:10]
 out_db_hom_oga <- db_hom_oga(Y,s=s)
 }
 }
